@@ -10,12 +10,12 @@ from icon_exclaim_perf_tools import db, log_import
 from icon_exclaim_perf_tools.db import schema as db_schema
 
 def database_option(command: Callable):
-    @click.option("--database", default="database.db")
+    @click.option("--database", default="database.db", help="Database file to read and write to.")
     def _command(*args, database: str, **kwargs):
         db_instance = db.setup_db(database)
         return command(db_instance, *args, **kwargs)
 
-    _command.__doc__ == command.__doc__
+    _command.__doc__ = command.__doc__
     return _command
 
 
@@ -191,13 +191,14 @@ def run_experiment(db: sqla.orm.Session, experiment: str, build_types: Optional[
 
     run_experiment.run_experiment(db, experiment, parsed_build_types, force_setup=force_setup, skip_build=skip_build)
 
-@cli.command("extended_help")
+@cli.command("help")
 @click.pass_context
-def extended_help(ctx):
+def help(ctx):
     for command in cli.commands.values():
-        if command.name == "extended_help":
+        if command.name == "help":
             continue
         click.echo("-"*80)
+        click.echo()
         with click.Context(command, parent=ctx.parent, info_name=command.name) as ctx:
             click.echo(command.get_help(ctx=ctx))
         click.echo()
