@@ -46,7 +46,15 @@ def import_log_file(db: sqla.orm.Session, log_file: str, experiment: Optional[st
 @click.argument("log_files", nargs=-1)
 @database_option
 def import_log_files(db, log_files: list[str]):
-    """Import performance data from multiple log files"""
+    """
+    Import performance data from multiple LOG_FILES.
+
+    Can be a set of log files and/or directory containing log files.
+    """
+    if len(log_files) == 0:
+        print("No log files given.")
+        return
+
     files = []
     for path in log_files:
         if os.path.isdir(path):
@@ -61,10 +69,11 @@ def import_log_files(db, log_files: list[str]):
             actual_files.append(log_file)
         else:
             num_skipped += 1
+
     if num_skipped:
         print(f"Skipped {num_skipped} files as they don't start with `.LOG`.")
 
-    for log_file in files:
+    for log_file in actual_files:
         try:
             log_import.import_model_run_log_from_file(db, log_file)
             print(f"Successfully imported {log_file}")
@@ -75,30 +84,42 @@ def import_log_files(db, log_files: list[str]):
 @cli.command("print_all")
 @database_option
 def print_all(db: sqla.orm.Session):
+    """Print all entries in the database."""
     from . import print_utils
 
     print_utils.print_all(db)
 
+HELP_TEXT_WHERE = ("Restrict the output to results that fulfill the given condition (given as an "
+                   "expression). E.g., `name.startswith('fused_')`")
+HELP_TEXT_GROUP_BY = "Aggregate all results into groups where the given attribute is equal."
+HELP_TEXT_ORDER_BY = ("Sort the results by the given expression, e.g. `time_total.asc()` orders "
+                      "the result in ascending order of the `time_total` attribute.")
+HELP_TEXT_LIMIT = "Limit the number of result rows to the given number."
 
 @cli.command("print")
 @click.argument("model")
-@click.option('--fields')
-@click.option('--where', multiple=True)
-@click.option('--group-by', multiple=True)
-@click.option('--order-by', multiple=True)
-@click.option('--limit', type=int)
-@click.option('--virtual-field', nargs=2, multiple=True)
+@click.option('--fields', help="The attributes to output.")
+@click.option('--where', multiple=True, help=HELP_TEXT_WHERE)
+@click.option('--group-by', multiple=True, help=HELP_TEXT_GROUP_BY)
+@click.option('--order-by', multiple=True, help=HELP_TEXT_ORDER_BY)
+@click.option('--limit', type=int, default=None, help=HELP_TEXT_LIMIT)
+@click.option('--virtual-field', nargs=2, multiple=True,
+              help="Display an additional column whose values are computed according to the "
+                   "given expression. E.g., `time_total/60`.")
 @database_option
 def print_(
-        db: sqla.orm.Session,
-        model: str,
-        fields: str,
-        where: list[str],
-        group_by: list[str],
-        order_by: list[str],
-        limit: int,
-        virtual_field: list  # todo
+    db: sqla.orm.Session,
+    model: str,
+    fields: str,
+    where: list[str],
+    group_by: list[str],
+    order_by: list[str],
+    limit: Optional[int],
+    virtual_field: list  # todo
 ):
+    """
+    Output all database entries for the given MODEL.
+    """
     from . import print_utils
 
     if fields:
@@ -110,21 +131,76 @@ def print_(
 @cli.command("compare")
 @click.argument("model")
 @click.option('--jobid', multiple=True)
-@click.option('--where', multiple=True)
-@click.option('--compare-attr', multiple=True)
-@click.option('--order-by', multiple=True)
+@click.option('--fields')
+@click.option('--where', multiple=True, help=HELP_TEXT_WHERE)
+@click.option('--group-by', multiple=True, help=HELP_TEXT_GROUP_BY)
+@click.option('--compare-attr', multiple=True, help="Output a comparison column for this attribute.")
+@click.option('--order-by', multiple=True, help=HELP_TEXT_ORDER_BY)
+@click.option('--limit', type=int, default=None, help=HELP_TEXT_LIMIT)
 @database_option
-def compare(db: sqla.orm.Session, model: str, jobid: list[str], where: list[str], compare_attr: list[str], order_by: list[str]):
+def compare(
+    db: sqla.orm.Session,
+    model: str,
+    jobid: list[str],
+    fields: str,
+    where: list[str],
+    group_by: list[str],
+    compare_attr: list[str],
+    order_by: list[str],
+    limit: Optional[int]
+):
+    """Compare all entries of the given MODEL with each other (cartesian product)."""
     from . import print_utils
 
-    print_utils.compare(db, getattr(db_schema, model), jobids=jobid, where=where, order_by=order_by, compare_attrs=compare_attr)
+    if fields:
+        fields = [field.strip() for field in fields.split(",")]
+
+    print_utils.compare(
+        db,
+        getattr(db_schema, model),
+        fields=fields,
+        jobids=jobid,
+        where=where,
+        group_by=group_by,
+        order_by=order_by,
+        compare_attrs=compare_attr,
+        limit=limit
+    )
 
 @cli.command("run_experiment")
 @click.argument("experiment")
+@click.option('--build-types', default=None,
+              help="Comma seperated list of build types.")
+@click.option("--force-setup", is_flag=True, default=False,
+              help="Unconditionally run setup script. By default the script is only executed when "
+                   "the build folder does not exist.")
+@click.option("--skip-build", is_flag=True, default=False,
+              help="Skip build step and just run the experiment.")
 @database_option
-def run_experiment(db: sqla.orm.Session, experiment: str):
+def run_experiment(db: sqla.orm.Session, experiment: str, build_types: Optional[str], force_setup: bool, skip_build: bool):
+    """Run an EXPERIMENT for all given BUILD_TYPES."""
     from . import run_experiment
-    run_experiment.run_experiment(db, experiment)
+
+    if build_types:
+        parsed_build_types = [build_type.strip() for build_type in build_types.split(",")]
+    else:
+        parsed_build_types = run_experiment.VALID_BUILD_TYPES
+
+    # TODO: fixme
+    skip_build = False
+
+    run_experiment.run_experiment(db, experiment, parsed_build_types, force_setup=force_setup, skip_build=skip_build)
+
+@cli.command("extended_help")
+@click.pass_context
+def extended_help(ctx):
+    for command in cli.commands.values():
+        if command.name == "extended_help":
+            continue
+        click.echo("-"*80)
+        with click.Context(command, parent=ctx.parent, info_name=command.name) as ctx:
+            click.echo(command.get_help(ctx=ctx))
+        click.echo()
 
 if __name__ == '__main__':
     cli()

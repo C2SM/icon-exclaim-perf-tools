@@ -88,12 +88,12 @@ def import_nvtx_range(
 
         time_percent, time, calls, avg, min_val, max_val, name = line.split(None, 6)
         parsed_data[current_category].append({
-            'name': name,
-            'calls': int(calls),
-            'time_total': convert_to_seconds(time),
-            'time_avg': convert_to_seconds(avg),
-            'time_min': convert_to_seconds(min_val),
-            'time_max': convert_to_seconds(max_val),
+            "name": name,
+            "num_calls": int(calls),
+            "time_total": convert_to_seconds(time),
+            "time_avg": convert_to_seconds(avg),
+            "time_min": convert_to_seconds(min_val),
+            "time_max": convert_to_seconds(max_val),
         })
 
     assert len(parsed_data["Range"]) == 1
@@ -105,10 +105,10 @@ def import_nvtx_range(
     )
 
     for kernel_call_data in parsed_data["GPU activities"]:
-        NVTXRangeKernelCall.create(db, nvtx_range=nvtx_range, **kernel_call_data)
+        NVTXRangeCall.create(db, type_=NVTXRangeCallType.KERNEL, nvtx_range=nvtx_range, **kernel_call_data)
 
     for api_call_data in parsed_data["API calls"]:
-        NVTXRangeAPICall.create(db, nvtx_range=nvtx_range, **api_call_data)
+        NVTXRangeCall.create(db, type_=NVTXRangeCallType.API, nvtx_range=nvtx_range, **api_call_data)
 
     return parsed_data
 
@@ -142,7 +142,7 @@ def import_timer_report(
 ) -> None:
     columns = {  # careful: order here matters
         "name": "name",
-        "calls": "# calls",
+        "num_calls": "# calls",
         "time_min": "t_min",
         "time_avg": "t_avg",
         "time_max": "t_max",

@@ -16,3 +16,6 @@ name = 'icon_exclaim_perf_tools'
 readme = {file = 'README.md', content-type = 'text/markdown'}
 requires-python = '>=3.10'
 version = '0.0'
+
+[project.scripts]
+icon_exclaim_perf_tools = 'icon_exclaim_perf_tools.cli:cli'

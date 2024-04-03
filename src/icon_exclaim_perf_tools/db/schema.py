@@ -35,6 +35,8 @@ def enum_field(enum_cls):
             return value.value
 
         def process_result_value(self, value, dialect):
+            if value == "NONE":  # TODO: find a better solution
+                return "NONE"
             return enum_cls[value.upper()]
     return EnumType
 
@@ -103,10 +105,10 @@ class IconRun(Model):
     nvtx_ranges: sqla.orm.Mapped[list["NVTXRange"]] = sqla.orm.relationship(back_populates="run")
     subdomains: sqla.orm.Mapped[list["Subdomain"]] = sqla.orm.relationship(back_populates="run")
 
-    # TODO
-    @property
-    def test(self):
-        return self.name
+    # TODO(tehrengruber): virtual attrs never implemented
+    #@property
+    #def test(self):
+    #    return self.name
 
 
 class Subdomain(Model):
@@ -139,13 +141,17 @@ class TimerReportEntry(Model):
     RESTRICT_COMPARISON_BY = ["name"]
 
     class Aggregation(TimerAggregation):
-        calls = sqla.func.sum
+        def name(self):
+            return sqla.case((sqla.func.count(sqla.func.distinct(self)) == 1, sqla.func.min(self)),
+                             else_='NONE')
+
+        num_calls = sqla.func.sum
 
     id: sqla.orm.Mapped[int] = sqla.orm.mapped_column(primary_key=True)
     name: sqla.orm.Mapped[str]
     run: sqla.orm.Mapped[IconRun] = sqla.orm.relationship(back_populates="timer")
     parent: sqla.orm.Mapped[Optional["TimerReportEntry"]] = sqla.orm.relationship(back_populates="children", remote_side=[id])
-    calls: sqla.orm.Mapped[int]
+    num_calls: sqla.orm.Mapped[int]
     time_min: sqla.orm.Mapped[float]
     time_avg: sqla.orm.Mapped[float]
     time_max: sqla.orm.Mapped[float]
@@ -167,7 +173,7 @@ class NVTXRange(Model):
     RESTRICT_COMPARISON_BY = ["name"]
 
     class Aggregation(TimerAggregation):
-        calls = sqla.func.sum
+        num_calls = sqla.func.sum
 
         def name(self):
             return sqla.case((sqla.func.count(sqla.func.distinct(self)) == 1, sqla.func.min(self)),
@@ -177,44 +183,43 @@ class NVTXRange(Model):
 
     run: sqla.orm.Mapped[Optional[IconRun]] = sqla.orm.relationship(back_populates="nvtx_ranges")
 
-    calls: sqla.orm.Mapped[int]
+    num_calls: sqla.orm.Mapped[int]
     # note: these timings don't appear to be meaningful.
     time_total: sqla.orm.Mapped[float]
     time_avg: sqla.orm.Mapped[float]
     time_min: sqla.orm.Mapped[float]
     time_max: sqla.orm.Mapped[float]
-    
-    kernel_calls: sqla.orm.Mapped[list["NVTXRangeKernelCall"]] = sqla.orm.relationship(back_populates="nvtx_range")
-    api_calls: sqla.orm.Mapped[list["NVTXRangeAPICall"]] = sqla.orm.relationship(back_populates="nvtx_range")
+
+    calls: sqla.orm.Mapped[list["NVTXRangeCall"]] = sqla.orm.relationship(back_populates="nvtx_range")
 
     run_id = sqla.orm.mapped_column(sqla.schema.ForeignKey(IconRun.__tablename__+".id"))
 
-class NVTXRangeCall:
+class NVTXRangeCallType(enum.Enum):
+    KERNEL = "KERNEL"
+    API = "API"
+
+class NVTXRangeCall(Model):
+    __tablename__ = "nvtx_range_call"
+    REPR_FIELDS = ["name", "type_", "nvtx_range"]
     DEFAULT_COMPARE_BY = "nvtx_range.run.jobid"
-    RESTRICT_COMPARISON_BY = ["name", "nvtx_range.run.mode"]
-    DEFAULT_COMPARE_FIELDS = ["calls", "time_min", "time_avg", "time_max", "time_total"]
+    RESTRICT_COMPARISON_BY = ["nvtx_range.name"]
+    DEFAULT_COMPARE_FIELDS = ["num_calls", "time_min", "time_avg", "time_max", "time_total"]
 
     name: sqla.orm.Mapped[str]
+    type_ = sqla.orm.mapped_column(enum_field(NVTXRangeCallType))
+
+    nvtx_range: sqla.orm.Mapped["NVTXRange"] = sqla.orm.relationship(back_populates="calls")
+    nvtx_range_id = sqla.orm.mapped_column(sqla.schema.ForeignKey(NVTXRange.__tablename__ + ".id"))
 
     class Aggregation(TimerAggregation):
-        calls = sqla.func.sum
+        num_calls = sqla.func.sum
 
-    calls: sqla.orm.Mapped[int]
+        def type_(self):
+            return sqla.case((sqla.func.count(sqla.func.distinct(self)) == 1, sqla.func.min(self)),
+                             else_='NONE')
+
+    num_calls: sqla.orm.Mapped[int]
     time_total: sqla.orm.Mapped[float]
     time_avg: sqla.orm.Mapped[float]
     time_min: sqla.orm.Mapped[float]
     time_max: sqla.orm.Mapped[float]
-
-class NVTXRangeKernelCall(Model, NVTXRangeCall):
-    __tablename__ = "nvtx_range_kernel_call"
-    REPR_FIELDS = ["name", "nvtx_range"]
-
-    nvtx_range: sqla.orm.Mapped["NVTXRange"] = sqla.orm.relationship(back_populates="kernel_calls")
-    nvtx_range_id = sqla.orm.mapped_column(sqla.schema.ForeignKey(NVTXRange.__tablename__+".id"))
-
-class NVTXRangeAPICall(Model, NVTXRangeCall):
-    __tablename__ = "nvtx_range_api_call"
-    REPR_FIELDS = ["name", "nvtx_range"]
-
-    nvtx_range: sqla.orm.Mapped["NVTXRange"] = sqla.orm.relationship(back_populates="api_calls")
-    nvtx_range_id = sqla.orm.mapped_column(sqla.schema.ForeignKey(NVTXRange.__tablename__ + ".id"))
