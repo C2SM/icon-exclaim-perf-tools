@@ -2,8 +2,18 @@
 
 This repository contains tools to measure and analyse performance of icon-exclaim (right now blue-line only).
 
+## Installation
 
 ```commandline
+git clone git@github.com:C2SM/icon-exclaim-perf-tools.git
+cd icon-exclaim-perf-tools
+python -m venv venv
+source venv/bin/activate
+pip install -e .
+```
+
+## Usage
+```
 --------------------------------------------------------------------------------
 
 Usage: icon_exclaim_perf_tools import_log_file [OPTIONS] LOG_FILE
@@ -23,6 +33,11 @@ Usage: icon_exclaim_perf_tools import_log_files [OPTIONS] [LOG_FILES]...
   Import performance data from multiple LOG_FILES.
 
   Can be a set of log files and/or directory containing log files.
+
+  Examples:
+
+  - Import all log files in the current directory.
+    $ icon_exclaim_perf_tools import_log_files .
 
 Options:
   --database TEXT  Database file to read and write to.
@@ -45,7 +60,7 @@ Usage: icon_exclaim_perf_tools print [OPTIONS] MODEL
   Output all database entries for the given MODEL.
 
 Options:
-  --fields TEXT            The attributes to output.
+  --fields TEXT            Comma seperated list of attributes to output.
   --where TEXT             Restrict the output to results that fulfill the
                            given condition (given as an expression). E.g.,
                            `name.startswith('fused_')`
@@ -70,7 +85,7 @@ Usage: icon_exclaim_perf_tools compare [OPTIONS] MODEL
 
 Options:
   --jobid TEXT
-  --fields TEXT
+  --fields TEXT        Comma seperated list of attributes to output.
   --where TEXT         Restrict the output to results that fulfill the given
                        condition (given as an expression). E.g.,
                        `name.startswith('fused_')`
@@ -97,4 +112,13 @@ Options:
   --skip-build        Skip build step and just run the experiment.
   --database TEXT     Database file to read and write to.
   --help              Show this message and exit.
+
+--------------------------------------------------------------------------------
+
+Usage: icon_exclaim_perf_tools print_schema [OPTIONS]
+
+  Print all models and their attributes represented in the database.
+
+Options:
+  --help  Show this message and exit.
 ```

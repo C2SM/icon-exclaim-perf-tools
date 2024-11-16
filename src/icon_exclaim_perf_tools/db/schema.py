@@ -17,6 +17,7 @@ def get_all_models():
             if var.__module__.startswith(
                     "icon_exclaim_perf_tools") and var.__name__ not in abstract_models:
                 models.append(var)
+
     return models
 
 def enum_field(enum_cls):
@@ -32,6 +33,8 @@ def enum_field(enum_cls):
                 return self
 
         def process_bind_param(self, value, dialect):
+            if value is None:
+                raise ValueError(f"Invalid value `None` for enum field {enum_cls.__name__}")
             return value.value
 
         def process_result_value(self, value, dialect):

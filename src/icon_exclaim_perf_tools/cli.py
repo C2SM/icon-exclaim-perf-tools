@@ -50,6 +50,12 @@ def import_log_files(db, log_files: list[str]):
     Import performance data from multiple LOG_FILES.
 
     Can be a set of log files and/or directory containing log files.
+
+    Examples:
+
+    \b
+    - Import all log files in the current directory.
+      $ icon_exclaim_perf_tools import_log_files .
     """
     if len(log_files) == 0:
         print("No log files given.")
@@ -89,16 +95,17 @@ def print_all(db: sqla.orm.Session):
 
     print_utils.print_all(db)
 
+HELP_TEXT_FIELDS = "Comma seperated list of attributes to output."
 HELP_TEXT_WHERE = ("Restrict the output to results that fulfill the given condition (given as an "
                    "expression). E.g., `name.startswith('fused_')`")
-HELP_TEXT_GROUP_BY = "Aggregate all results into groups where the given attribute is equal."
+HELP_TEXT_GROUP_BY = "Aggregate all results grouped by the given attribute."
 HELP_TEXT_ORDER_BY = ("Sort the results by the given expression, e.g. `time_total.asc()` orders "
                       "the result in ascending order of the `time_total` attribute.")
 HELP_TEXT_LIMIT = "Limit the number of result rows to the given number."
 
 @cli.command("print")
 @click.argument("model")
-@click.option('--fields', help="The attributes to output.")
+@click.option('--fields', help=HELP_TEXT_FIELDS)
 @click.option('--where', multiple=True, help=HELP_TEXT_WHERE)
 @click.option('--group-by', multiple=True, help=HELP_TEXT_GROUP_BY)
 @click.option('--order-by', multiple=True, help=HELP_TEXT_ORDER_BY)
@@ -131,7 +138,7 @@ def print_(
 @cli.command("compare")
 @click.argument("model")
 @click.option('--jobid', multiple=True)
-@click.option('--fields')
+@click.option('--fields', help=HELP_TEXT_FIELDS)
 @click.option('--where', multiple=True, help=HELP_TEXT_WHERE)
 @click.option('--group-by', multiple=True, help=HELP_TEXT_GROUP_BY)
 @click.option('--compare-attr', multiple=True, help="Output a comparison column for this attribute.")
@@ -186,10 +193,20 @@ def run_experiment(db: sqla.orm.Session, experiment: str, build_types: Optional[
     else:
         parsed_build_types = run_experiment.VALID_BUILD_TYPES
 
-    # TODO: fixme
-    skip_build = False
-
     run_experiment.run_experiment(db, experiment, parsed_build_types, force_setup=force_setup, skip_build=skip_build)
+
+
+@cli.command("print_schema")
+def print_schema():
+    """Print all models and their attributes represented in the database."""
+    models = db_schema.get_all_models()
+    for model in models:
+        table = sqla.inspect(model)
+        print(model.__name__)
+        for column in table.c:
+            print("  " + column.name)
+        print()
+
 
 @cli.command("help")
 @click.pass_context

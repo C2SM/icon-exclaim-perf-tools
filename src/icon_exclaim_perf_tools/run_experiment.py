@@ -19,13 +19,9 @@ run_command = "end_date='2021-06-20T13:00:00Z' sbatch --wait --partition normal 
 
 VALID_BUILD_TYPES: list[str] = [
     "build_substitution",
-    "build_substitution_temporaries",
     "build_substitution_fused",
-    "build_substitution_fused_temporaries",
     "build_verification",
-    "build_verification_temporaries",
     "build_verification_fused",
-    "build_verification_fused_temporaries",
     #"build_serialize",
     "build_acc",
     #"build_cpu",
@@ -76,10 +72,11 @@ def execute_experiment(build_type: str, db_path, experiment: str):
     output_prefix = f"[Experiment {build_type:{max_length}}]: "
 
     cmd = run_command + " exp." + experiment + ".run"
-    if not "verification" in build_type:
-        cmd = cmd + " tool=nvprof"
-    else:
-        cmd = cmd
+    # TODO(tehrengruber): this doesn't work anymore
+    #if not "verification" in build_type:
+    #    cmd = cmd + " tool=nvprof"
+    #else:
+    #    cmd = cmd
 
     print(output_prefix + cmd)
     jobid = None

@@ -144,11 +144,16 @@ def import_timer_report(
         "name": "name",
         "num_calls": "# calls",
         "time_min": "t_min",
+        "_min_rang": "min rank",
         "time_avg": "t_avg",
         "time_max": "t_max",
+        "_max_rang": "max rank",
         "_total_time_min": "total min (s)",  # numbers are equal to total time so skip
+        "_total_time_min_rank": "total min rank",
         "time_total": "total max (s)",
-        "_total_time_avg": "total avg (s)"  # numbers are equal to total time so skip
+        "_total_time_max_rank": "total max rank",
+        "_total_time_avg": "total avg (s)",  # numbers are equal to total time so skip
+        "_num_pe": "# PEs"
     }
     # skip header
     header_dash_pattern = re.compile("([-]+)".join(["(\\s+)"] * (len(columns.values())+1)))
@@ -176,7 +181,6 @@ def import_timer_report(
         entry_data["time_min"] = convert_to_seconds_icon(entry_data["time_min"])
         entry_data["time_max"] = convert_to_seconds_icon(entry_data["time_max"])
         entry_data["time_avg"] = convert_to_seconds_icon(entry_data["time_avg"])
-        assert entry_data["_total_time_min"] == entry_data["time_total"] == entry_data["_total_time_avg"]
         new_entry = TimerReportEntry.create(
             db,
             run=model_run,
@@ -293,11 +297,11 @@ def import_model_run_log(
 
     line_iterator: LineCursor = LineCursor(lines)
     for line in line_iterator:
-        if line.strip().startswith("Executable:"):
+        if line.strip().startswith("executable:"):
             model_run.mode = extract_build_mode_from_executable(line)
         elif nvtx_pattern.match(line):
             import_nvtx_ranges(db, model_run, line_iterator)
-        elif line.strip() == "Timer report":
+        elif line.strip().startswith("Timer report,"):
             import_timer_report(db, model_run, line_iterator)
         elif line.strip().startswith("[SUBDOMAINS]"):
             import_subdomains(db, model_run, line_iterator.revert())
