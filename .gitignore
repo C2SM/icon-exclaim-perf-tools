@@ -1,0 +1,4 @@
+__pycache__/
+*.egg-info/
+*.db*
+bencher_*.json
