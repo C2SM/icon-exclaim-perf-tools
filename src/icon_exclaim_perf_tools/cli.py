@@ -220,5 +220,25 @@ def help(ctx):
             click.echo(command.get_help(ctx=ctx))
         click.echo()
 
+
+@cli.command("_export_log_to_bencher")
+@click.argument("log_file")
+@click.option("--experiment", default=None)
+@click.option("--jobid", default=None, type=int)
+@database_option
+def _export_log_to_bencher(db: sqla.orm.Session, log_file: str, experiment: Optional[str], jobid: Optional[int]):
+    """Export performance data from a log file to a bencher file."""
+    deduced_experiment, _ = log_import.extract_metadata_from_log_path(log_file)
+    if not experiment and not deduced_experiment:
+        raise click.BadArgumentUsage(
+            "If the experiment can not be deduced from the log file path `--experiment` is mandatory."
+        )
+
+    try:
+        log_import.import_model_run_log_from_file(db, log_file, experiment=experiment, jobid=jobid, bencher=True)
+    except Exception as e:
+        click.echo(f"An unexpected error occurred: {e}")
+
+
 if __name__ == '__main__':
     cli()

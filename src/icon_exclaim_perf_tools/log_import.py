@@ -301,7 +301,8 @@ def import_model_run_log(
     db: sqla.orm.Session,
     experiment: str,
     log_content: str,
-    jobid: Optional[int] = None
+    jobid: Optional[int] = None,
+    bencher: Optional[bool] = None,
 ) -> None:
     if jobid:
         existing_run = db.execute(sqla.select(IconRun).where(IconRun.jobid==jobid)).fetchone()
@@ -327,8 +328,8 @@ def import_model_run_log(
         elif line.strip().startswith("[SUBDOMAINS]"):
             import_subdomains(db, model_run, line_iterator.revert())
     
-    # For Continuous Benchmarking
-    generate_bencher_file(model_run)
+    if bencher:
+        generate_bencher_file(model_run)  # For Continuous Benchmarking
 
     db.add(model_run)
 
@@ -337,8 +338,9 @@ def import_model_run_log_from_file(
     log_file: str,
     *,
     experiment: Optional[str] = None,
-    jobid: Optional[int] = None
-):
+    jobid: Optional[int] = None,
+    bencher: Optional[bool] = None,
+) -> None:
     # read log from file
     with open(log_file, "r") as f:
         log_content = f.read()
@@ -354,4 +356,4 @@ def import_model_run_log_from_file(
         if deduced_jobid:
             jobid = deduced_jobid
 
-    import_model_run_log(db, experiment, log_content, jobid=jobid)
+    import_model_run_log(db, experiment, log_content, jobid=jobid, bencher=bencher)
