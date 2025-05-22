@@ -2,6 +2,8 @@ import sys
 from typing import Optional, Callable
 import os
 import click
+import json
+import traceback
 
 import sqlalchemy as sqla
 import sqlalchemy.orm
@@ -219,6 +221,45 @@ def help(ctx):
         with click.Context(command, parent=ctx.parent, info_name=command.name) as ctx:
             click.echo(command.get_help(ctx=ctx))
         click.echo()
+
+
+@cli.command("export_log_to_bencher")
+@click.argument("log_file")
+@click.option("--experiment", default=None)
+@click.option("--jobid", default=None, type=int)
+def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optional[int]):
+    """Export performance data from a log file to a bencher file."""
+    deduced_experiment, _ = log_import.extract_metadata_from_log_path(log_file)
+    if not experiment and not deduced_experiment:
+        raise click.BadArgumentUsage(
+            "If the experiment can not be deduced from the log file path `--experiment` is mandatory."
+        )
+
+    try:
+        model_run = log_import.import_model_run_log_from_file(db.setup_db(":memory:"), log_file, experiment=experiment, jobid=jobid)
+        
+        # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (needed for Continuous Benchmarking).
+        bencher_metric_format = {model_run.experiment: {}}
+        
+        experiment = bencher_metric_format[model_run.experiment]
+        for timer in model_run.timer:
+            assert timer.name not in experiment
+            experiment[timer.name] = {
+                "value": timer.time_avg,
+                "lower_value": timer.time_min,
+                "upper_value": timer.time_max,
+            }
+        
+        bencher_file_name = f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json"
+        with open(bencher_file_name, "w") as f:
+            json.dump(bencher_metric_format, f, indent=2)
+
+        click.echo(bencher_file_name)
+
+    except Exception as e:
+        click.echo("An unexpected error occurred:", err=True)
+        traceback.print_exc(file=sys.stderr)
+
 
 if __name__ == '__main__':
     cli()

@@ -276,12 +276,13 @@ def extract_build_mode_from_executable(line: str) -> ModelRunMode:
     else:
         return ModelRunMode[run_mode.upper()]
 
+
 def import_model_run_log(
     db: sqla.orm.Session,
     experiment: str,
     log_content: str,
-    jobid: Optional[int] = None
-) -> None:
+    jobid: Optional[int] = None,
+) -> IconRun:
     if jobid:
         existing_run = db.execute(sqla.select(IconRun).where(IconRun.jobid==jobid)).fetchone()
         if existing_run:
@@ -307,14 +308,15 @@ def import_model_run_log(
             import_subdomains(db, model_run, line_iterator.revert())
 
     db.add(model_run)
+    return model_run
 
 def import_model_run_log_from_file(
     db: sqla.orm.Session,
     log_file: str,
     *,
     experiment: Optional[str] = None,
-    jobid: Optional[int] = None
-):
+    jobid: Optional[int] = None,
+) -> IconRun:
     # read log from file
     with open(log_file, "r") as f:
         log_content = f.read()
@@ -330,4 +332,4 @@ def import_model_run_log_from_file(
         if deduced_jobid:
             jobid = deduced_jobid
 
-    import_model_run_log(db, experiment, log_content, jobid=jobid)
+    return import_model_run_log(db, experiment, log_content, jobid=jobid)
