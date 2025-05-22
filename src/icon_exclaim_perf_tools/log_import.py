@@ -1,6 +1,5 @@
 import dataclasses
 import re
-import json
 
 from icon_exclaim_perf_tools.db.schema import *
 
@@ -278,32 +277,13 @@ def extract_build_mode_from_executable(line: str) -> ModelRunMode:
         return ModelRunMode[run_mode.upper()]
 
 
-def generate_bencher_file(model_run: IconRun) -> None:
-    """Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (needed for Continuous Benchmarking)."""
-    bencher_metric_format = {model_run.experiment: {}}
-    
-    experiment = bencher_metric_format[model_run.experiment]
-    for timer in model_run.timer:
-        if timer.name in experiment:
-            # The ICON LOG file contains two experiments (check for bitwise equality) - skip the second while performance monitoring
-            break
-        experiment[timer.name] = {
-            "value": timer.time_avg,
-            "lower_value": timer.time_min,
-            "upper_value": timer.time_max,
-        }
-    
-    with open(f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json", "w") as f:
-        json.dump(bencher_metric_format, f, indent=2)
-
-
 def import_model_run_log(
     db: sqla.orm.Session,
     experiment: str,
     log_content: str,
     jobid: Optional[int] = None,
     bencher: Optional[bool] = None,
-) -> None:
+) -> Optional[IconRun]:
     if jobid:
         existing_run = db.execute(sqla.select(IconRun).where(IconRun.jobid==jobid)).fetchone()
         if existing_run:
@@ -329,7 +309,7 @@ def import_model_run_log(
             import_subdomains(db, model_run, line_iterator.revert())
     
     if bencher:
-        generate_bencher_file(model_run)  # For Continuous Benchmarking
+        return model_run
 
     db.add(model_run)
 
@@ -340,7 +320,7 @@ def import_model_run_log_from_file(
     experiment: Optional[str] = None,
     jobid: Optional[int] = None,
     bencher: Optional[bool] = None,
-) -> None:
+) -> Optional[IconRun]:
     # read log from file
     with open(log_file, "r") as f:
         log_content = f.read()
@@ -356,4 +336,4 @@ def import_model_run_log_from_file(
         if deduced_jobid:
             jobid = deduced_jobid
 
-    import_model_run_log(db, experiment, log_content, jobid=jobid, bencher=bencher)
+    return import_model_run_log(db, experiment, log_content, jobid=jobid, bencher=bencher)

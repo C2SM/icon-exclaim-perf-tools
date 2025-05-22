@@ -2,6 +2,8 @@ import sys
 from typing import Optional, Callable
 import os
 import click
+import json
+import traceback
 
 import sqlalchemy as sqla
 import sqlalchemy.orm
@@ -221,12 +223,11 @@ def help(ctx):
         click.echo()
 
 
-@cli.command("_export_log_to_bencher")
+@cli.command("export_log_to_bencher")
 @click.argument("log_file")
 @click.option("--experiment", default=None)
 @click.option("--jobid", default=None, type=int)
-@database_option
-def _export_log_to_bencher(db: sqla.orm.Session, log_file: str, experiment: Optional[str], jobid: Optional[int]):
+def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optional[int]):
     """Export performance data from a log file to a bencher file."""
     deduced_experiment, _ = log_import.extract_metadata_from_log_path(log_file)
     if not experiment and not deduced_experiment:
@@ -235,9 +236,26 @@ def _export_log_to_bencher(db: sqla.orm.Session, log_file: str, experiment: Opti
         )
 
     try:
-        log_import.import_model_run_log_from_file(db, log_file, experiment=experiment, jobid=jobid, bencher=True)
+        model_run = log_import.import_model_run_log_from_file(db.setup_db(":memory:"), log_file, experiment=experiment, jobid=jobid, bencher=True)
+        
+        # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (needed for Continuous Benchmarking).
+        bencher_metric_format = {model_run.experiment: {}}
+        
+        experiment = bencher_metric_format[model_run.experiment]
+        for timer in model_run.timer:
+            assert timer.name not in experiment
+            experiment[timer.name] = {
+                "value": timer.time_avg,
+                "lower_value": timer.time_min,
+                "upper_value": timer.time_max,
+            }
+        
+        with open(f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json", "w") as f:
+            json.dump(bencher_metric_format, f, indent=2)
+
     except Exception as e:
-        click.echo(f"An unexpected error occurred: {e}")
+        click.echo("An unexpected error occurred:", err=True)
+        traceback.print_exc(file=sys.stderr)
 
 
 if __name__ == '__main__':
