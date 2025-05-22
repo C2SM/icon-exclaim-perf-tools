@@ -282,8 +282,7 @@ def import_model_run_log(
     experiment: str,
     log_content: str,
     jobid: Optional[int] = None,
-    bencher: Optional[bool] = None,
-) -> Optional[IconRun]:
+) -> IconRun:
     if jobid:
         existing_run = db.execute(sqla.select(IconRun).where(IconRun.jobid==jobid)).fetchone()
         if existing_run:
@@ -307,11 +306,9 @@ def import_model_run_log(
             import_timer_report(db, model_run, line_iterator)
         elif line.strip().startswith("[SUBDOMAINS]"):
             import_subdomains(db, model_run, line_iterator.revert())
-    
-    if bencher:
-        return model_run
 
     db.add(model_run)
+    return model_run
 
 def import_model_run_log_from_file(
     db: sqla.orm.Session,
@@ -319,8 +316,7 @@ def import_model_run_log_from_file(
     *,
     experiment: Optional[str] = None,
     jobid: Optional[int] = None,
-    bencher: Optional[bool] = None,
-) -> Optional[IconRun]:
+) -> IconRun:
     # read log from file
     with open(log_file, "r") as f:
         log_content = f.read()
@@ -336,4 +332,4 @@ def import_model_run_log_from_file(
         if deduced_jobid:
             jobid = deduced_jobid
 
-    return import_model_run_log(db, experiment, log_content, jobid=jobid, bencher=bencher)
+    return import_model_run_log(db, experiment, log_content, jobid=jobid)

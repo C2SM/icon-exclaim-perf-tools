@@ -236,7 +236,7 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
         )
 
     try:
-        model_run = log_import.import_model_run_log_from_file(db.setup_db(":memory:"), log_file, experiment=experiment, jobid=jobid, bencher=True)
+        model_run = log_import.import_model_run_log_from_file(db.setup_db(":memory:"), log_file, experiment=experiment, jobid=jobid)
         
         # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (needed for Continuous Benchmarking).
         bencher_metric_format = {model_run.experiment: {}}
