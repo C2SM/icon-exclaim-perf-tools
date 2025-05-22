@@ -250,8 +250,11 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
                 "upper_value": timer.time_max,
             }
         
-        with open(f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json", "w") as f:
+        bencher_file_name = f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json"
+        with open(bencher_file_name, "w") as f:
             json.dump(bencher_metric_format, f, indent=2)
+
+        click.echo(bencher_file_name)
 
     except Exception as e:
         click.echo("An unexpected error occurred:", err=True)
