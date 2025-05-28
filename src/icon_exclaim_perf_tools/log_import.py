@@ -268,6 +268,7 @@ def extract_metadata_from_log_path(text):
 
 
 def extract_build_mode_from_executable(line: str) -> ModelRunMode:
+    return ModelRunMode.VERIFICATION
     match = re.search(r'build_([^/\s]+)', line)
     assert match
     run_mode: str = match.group(1)
