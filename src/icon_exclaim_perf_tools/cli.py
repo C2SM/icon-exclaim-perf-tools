@@ -237,20 +237,28 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
 
     try:
         model_run = log_import.import_model_run_log_from_file(db.setup_db(":memory:"), log_file, experiment=experiment, jobid=jobid)
-        
+
+        MAX_NAME_LENGTH = 64
+        def truncate_name(name: str, max_len: int = MAX_NAME_LENGTH) -> str:
+            if len(name) <= max_len:
+                return name
+            # Truncate from the start, prepend '...'
+            return f"...{name[-(max_len - 3):]}"
+
         # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (needed for Continuous Benchmarking).
         bencher_metric_format = {model_run.experiment: {}}
-        
+
         experiment = bencher_metric_format[model_run.experiment]
         for timer in model_run.timer:
-            if timer.name in experiment:
+            short_name = truncate_name(timer.name)
+            if short_name in experiment:
                 continue
-            experiment[timer.name] = {
+            experiment[short_name] = {
                 "value": timer.time_avg,
                 "lower_value": timer.time_min,
                 "upper_value": timer.time_max,
             }
-        
+
         bencher_file_name = f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json"
         with open(bencher_file_name, "w") as f:
             json.dump(bencher_metric_format, f, indent=2)
