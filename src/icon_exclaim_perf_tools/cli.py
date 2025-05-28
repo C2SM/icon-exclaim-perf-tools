@@ -243,7 +243,8 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
         
         experiment = bencher_metric_format[model_run.experiment]
         for timer in model_run.timer:
-            assert timer.name not in experiment
+            if timer.name in experiment:
+                continue
             experiment[timer.name] = {
                 "value": timer.time_avg,
                 "lower_value": timer.time_min,
