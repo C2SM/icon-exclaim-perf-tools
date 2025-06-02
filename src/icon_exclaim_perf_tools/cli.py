@@ -239,9 +239,11 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
             if short_name in bencher_metric_format:
                 continue
             bencher_metric_format[short_name] = {
-                "latency": timer.time_avg,
-                "lower_value": timer.time_min,
-                "upper_value": timer.time_max,
+                "latency": {
+                    "value": timer.time_avg,
+                    "lower_value": timer.time_min,
+                    "upper_value": timer.time_max,
+                }
             }
 
         bencher_file_name = f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json"
