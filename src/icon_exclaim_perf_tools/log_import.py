@@ -35,9 +35,12 @@ class LineCursor:
         next(self)  # skip line only after exception for easier debugging
         return line
 
-
     def revert(self):
         self.current_line_index -= 1
+        return self
+
+    def rewind(self):
+        self.current_line_index = 0
         return self
 
 
@@ -268,9 +271,9 @@ def extract_metadata_from_log_path(text):
 
 
 def extract_build_mode_from_executable(line: str) -> ModelRunMode:
-    return ModelRunMode.VERIFICATION
     match = re.search(r'build_([^/\s]+)', line)
-    assert match
+    if not match:
+        return None
     run_mode: str = match.group(1)
     if run_mode == "acc":
         return ModelRunMode.OPENACC
@@ -298,10 +301,21 @@ def import_model_run_log(
     lines: list[str] = log_content.split('\n')
 
     line_iterator: LineCursor = LineCursor(lines)
+    
+    # Determine the build mode from the log file
     for line in line_iterator:
         if line.strip().startswith("executable:"):
-            model_run.mode = extract_build_mode_from_executable(line)
-        elif nvtx_pattern.match(line):
+            mode = extract_build_mode_from_executable(line)
+            if mode is not None:
+                model_run.mode = mode
+        elif (match := re.search(r'\bBUILD_(GPU2PY|ACC|CPU2PY|CPU)\b', line)):
+            model_run.mode = ModelRunMode[match.group(1).upper()]
+
+    assert model_run.mode is not None, "Could not determine the build mode from the log file!"
+    
+    line_iterator.rewind()
+    for line in line_iterator:
+        if nvtx_pattern.match(line):
             import_nvtx_ranges(db, model_run, line_iterator)
         elif line.strip().startswith("Timer report,"):
             import_timer_report(db, model_run, line_iterator)
