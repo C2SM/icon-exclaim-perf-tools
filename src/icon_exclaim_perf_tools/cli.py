@@ -246,7 +246,7 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
                 }
             }
 
-        bencher_file_name = f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json"
+        bencher_file_name = f"bencher={model_run.experiment}={model_run.jobid}={model_run.mode}.json"
         with open(bencher_file_name, "w") as f:
             json.dump(bencher_metric_format, f, indent=2)
 
