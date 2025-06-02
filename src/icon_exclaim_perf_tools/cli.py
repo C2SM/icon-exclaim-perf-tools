@@ -210,19 +210,6 @@ def print_schema():
         print()
 
 
-@cli.command("help")
-@click.pass_context
-def help(ctx):
-    for command in cli.commands.values():
-        if command.name == "help":
-            continue
-        click.echo("-"*80)
-        click.echo()
-        with click.Context(command, parent=ctx.parent, info_name=command.name) as ctx:
-            click.echo(command.get_help(ctx=ctx))
-        click.echo()
-
-
 @cli.command("export_log_to_bencher")
 @click.argument("log_file")
 @click.option("--experiment", default=None)
@@ -246,15 +233,13 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
             return f"...{name[-(max_len - 3):]}"
 
         # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (needed for Continuous Benchmarking).
-        bencher_metric_format = {model_run.experiment: {}}
-
-        experiment = bencher_metric_format[model_run.experiment]
+        bencher_metric_format = {}
         for timer in model_run.timer:
             short_name = truncate_name(timer.name)
-            if short_name in experiment:
+            if short_name in bencher_metric_format:
                 continue
-            experiment[short_name] = {
-                "value": timer.time_avg,
+            bencher_metric_format[short_name] = {
+                "latency": timer.time_avg,
                 "lower_value": timer.time_min,
                 "upper_value": timer.time_max,
             }
@@ -268,6 +253,19 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
     except Exception as e:
         click.echo("An unexpected error occurred:", err=True)
         traceback.print_exc(file=sys.stderr)
+
+
+@cli.command("help")
+@click.pass_context
+def help(ctx):
+    for command in cli.commands.values():
+        if command.name == "help":
+            continue
+        click.echo("-"*80)
+        click.echo()
+        with click.Context(command, parent=ctx.parent, info_name=command.name) as ctx:
+            click.echo(command.get_help(ctx=ctx))
+        click.echo()
 
 
 if __name__ == '__main__':
