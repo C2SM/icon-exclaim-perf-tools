@@ -232,7 +232,7 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
             # Truncate from the start, prepend '...'
             return f"...{name[-(max_len - 3):]}"
 
-        # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (needed for Continuous Benchmarking).
+        # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (Continuous Benchmarking).
         bencher_metric_format = {}
         for timer in model_run.timer:
             short_name = truncate_name(timer.name)
