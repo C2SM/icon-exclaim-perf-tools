@@ -225,7 +225,7 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
     try:
         model_run = log_import.import_model_run_log_from_file(db.setup_db(":memory:"), log_file, experiment=experiment, jobid=jobid)
 
-        MAX_NAME_LENGTH = 64
+        MAX_NAME_LENGTH = 1024
         def truncate_name(name: str, max_len: int = MAX_NAME_LENGTH) -> str:
             if len(name) <= max_len:
                 return name
