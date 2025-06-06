@@ -234,15 +234,16 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
 
         # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (Continuous Benchmarking).
         bencher_metric_format = {}
+        CONVERSION_TO_MILLISECONDS = 1000.0
         for timer in model_run.timer:
             short_name = truncate_name(timer.name)
             if short_name in bencher_metric_format:
                 continue
             bencher_metric_format[short_name] = {
                 "latency": {
-                    "value": timer.time_avg,
-                    "lower_value": timer.time_min,
-                    "upper_value": timer.time_max,
+                    "value": timer.time_avg * CONVERSION_TO_MILLISECONDS,
+                    "lower_value": timer.time_min * CONVERSION_TO_MILLISECONDS,
+                    "upper_value": timer.time_max * CONVERSION_TO_MILLISECONDS,
                 }
             }
 
