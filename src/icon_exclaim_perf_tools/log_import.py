@@ -1,4 +1,5 @@
 import dataclasses
+import os
 import re
 
 from icon_exclaim_perf_tools.db.schema import *
@@ -261,8 +262,8 @@ def extract_metadata_from_log_path(text):
     >>> parse_log_file_path("LOG.exp.mch_ch_r04b09_dsl.run.10134150.o")
     ('mch_ch_r04b09_dsl', '10134150')
     """
-    pattern = r'LOG\.exp\.([^\.]+)\.run\.(\d+)'
-    matches = re.search(pattern, text)
+    pattern = r'LOG\.(?:exp|check)\.([^\.]+)\.run(\.\d+){0,1}\.o'
+    matches = re.search(pattern, os.path.basename(text))
     if matches:
         experiment, jobid = matches.groups()
         return experiment, jobid
@@ -286,6 +287,11 @@ def import_model_run_log(
     experiment: str,
     log_content: str,
     jobid: Optional[int] = None,
+    # TODO(tehrengruber): The subdomains are printed from multiple ranks in which case the output
+    #  is mangled together and not parsable. We just disable this option for now as the information
+    #  is not used anyway right now. If we don't need it in the future we should remove it
+    #  completely.
+    import_subdomains: bool = False,
 ) -> IconRun:
     if jobid:
         existing_run = db.execute(sqla.select(IconRun).where(IconRun.jobid==jobid)).fetchone()
@@ -319,7 +325,7 @@ def import_model_run_log(
             import_nvtx_ranges(db, model_run, line_iterator)
         elif line.strip().startswith("Timer report,"):
             import_timer_report(db, model_run, line_iterator)
-        elif line.strip().startswith("[SUBDOMAINS]"):
+        elif import_subdomains and line.strip().startswith("[SUBDOMAINS]"):
             import_subdomains(db, model_run, line_iterator.revert())
 
     db.add(model_run)
