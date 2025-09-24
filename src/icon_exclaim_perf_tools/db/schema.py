@@ -81,6 +81,11 @@ class ModelRunMode(enum.Enum):
     VERIFICATION_FUSED_TEMPORARIES = "VERIFICATION_FUSED_TEMPORARIES"
     OPENACC = "OPENACC"
 
+    GPU2PY = "GPU2PY"
+    ACC = "ACC"
+    CPU2PY = "CPU2PY"
+    CPU = "CPU"
+
     def __str__(self):
         return self.name
 
@@ -101,7 +106,7 @@ class IconRun(Model):
 
     experiment: sqla.orm.Mapped[str]
     jobid: sqla.orm.Mapped[int] = sqla.orm.mapped_column(nullable=True, unique=True)
-    mode = sqla.orm.mapped_column(enum_field(ModelRunMode))
+    mode = sqla.orm.mapped_column(enum_field(ModelRunMode), nullable=True)
     raw_log = sqla.orm.mapped_column(CompressedField)
 
     timer: sqla.orm.Mapped[list["TimerReportEntry"]] = sqla.orm.relationship(back_populates="run")
