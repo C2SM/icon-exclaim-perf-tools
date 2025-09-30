@@ -22,6 +22,10 @@ class LineCursor:
 
     def skip(self, pattern: str, strip=True):
         line = self.current_line()
+        while re.match(r"mo_.*:.*", line.strip()):
+            next(self)
+            line = self.current_line()
+            continue
         if strip:
             line = line.strip()
         if isinstance(pattern, str):
@@ -183,6 +187,8 @@ def import_timer_report(
     last_level_stack = [-1]
     last_entry_stack = [None]
     for i, line in enumerate(line_iterator):
+        if re.match(r"mo_.*:.*", line.strip()):
+            continue
         if re.match(r"-+", line.strip()):  # last line consists of just dashes
             break
         values = [*column_pattern.search(line).groups()]
@@ -251,6 +257,8 @@ def import_subdomains(
          enumerate(header_dash_pattern.search(header_dash_line).groups())]))
 
     for line in line_iterator:
+        if re.match(r"mo_.*:.*", line.strip()):
+            continue
         if not line.strip():  # last line consists of just dashes
             break
         values = [value.strip() for value in column_pattern.search(line).groups()]
