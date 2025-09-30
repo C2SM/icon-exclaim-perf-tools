@@ -142,7 +142,8 @@ def import_nvtx_ranges(
 def import_timer_report(
     db: sqla.orm.Session,
     model_run: IconRun,
-    line_iterator: LineCursor
+    line_iterator: LineCursor,
+    single_rank: bool = False
 ) -> None:
     columns = {  # careful: order here matters
         "name": "name",
@@ -158,7 +159,17 @@ def import_timer_report(
         "_total_time_max_rank": "total max rank",
         "_total_time_avg": "total avg (s)",  # numbers are equal to total time so skip
         "_num_pe": "# PEs"
+    } if not single_rank else {
+        "name": "name",
+        "num_calls": "# calls",
+        "time_min": "t_min",
+        "time_avg": "t_avg",
+        "time_max": "t_max",
+        "_total_time_min": "total min (s)",  # numbers are equal to total time so skip
+        "time_total": "total max (s)",
+        "_total_time_avg": "total avg (s)",  # numbers are equal to total time so skip
     }
+
     # skip header
     header_dash_pattern = re.compile("([-]+)".join(["(\\s+)"] * (len(columns.values())+1)))
     line_iterator.skip("")
@@ -291,7 +302,7 @@ def import_model_run_log(
     #  is mangled together and not parsable. We just disable this option for now as the information
     #  is not used anyway right now. If we don't need it in the future we should remove it
     #  completely.
-    import_subdomains: bool = False,
+    import_subdomains_val: bool = False,
 ) -> IconRun:
     if jobid:
         existing_run = db.execute(sqla.select(IconRun).where(IconRun.jobid==jobid)).fetchone()
@@ -323,9 +334,9 @@ def import_model_run_log(
     for line in line_iterator:
         if nvtx_pattern.match(line):
             import_nvtx_ranges(db, model_run, line_iterator)
-        elif line.strip().startswith("Timer report,"):
-            import_timer_report(db, model_run, line_iterator)
-        elif import_subdomains and line.strip().startswith("[SUBDOMAINS]"):
+        elif line.strip().startswith("Timer report") and not line.strip().startswith("Timer report:"):
+            import_timer_report(db, model_run, line_iterator, single_rank=not line.strip().startswith("Timer report, ranks"))
+        elif import_subdomains_val and line.strip().startswith("[SUBDOMAINS]"):
             import_subdomains(db, model_run, line_iterator.revert())
 
     db.add(model_run)
