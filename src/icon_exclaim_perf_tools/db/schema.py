@@ -106,7 +106,7 @@ class IconRun(Model):
 
     experiment: sqla.orm.Mapped[str]
     jobid: sqla.orm.Mapped[int] = sqla.orm.mapped_column(nullable=True, unique=True)
-    mode = sqla.orm.mapped_column(enum_field(ModelRunMode), nullable=True)
+    mode = sqla.orm.mapped_column(enum_field(ModelRunMode))
     raw_log = sqla.orm.mapped_column(CompressedField)
 
     timer: sqla.orm.Mapped[list["TimerReportEntry"]] = sqla.orm.relationship(back_populates="run")

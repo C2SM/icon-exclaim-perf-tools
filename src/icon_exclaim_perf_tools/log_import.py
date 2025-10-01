@@ -316,10 +316,10 @@ def import_model_run_log(
                 model_run.mode = mode
         elif (match := re.search(r'\bBUILD_(GPU2PY|ACC|CPU2PY|CPU)\b', line)):
             model_run.mode = ModelRunMode[match.group(1).upper()]
+    line_iterator.rewind()
 
     assert model_run.mode is not None, "Could not determine the build mode from the log file!"
-    
-    line_iterator.rewind()
+
     for line in line_iterator:
         if nvtx_pattern.match(line):
             import_nvtx_ranges(db, model_run, line_iterator)
