@@ -291,7 +291,7 @@ def import_model_run_log(
     #  is mangled together and not parsable. We just disable this option for now as the information
     #  is not used anyway right now. If we don't need it in the future we should remove it
     #  completely.
-    import_subdomains: bool = False,
+    enable_import_subdomains: bool = False,
 ) -> IconRun:
     if jobid:
         existing_run = db.execute(sqla.select(IconRun).where(IconRun.jobid==jobid)).fetchone()
@@ -325,7 +325,7 @@ def import_model_run_log(
             import_nvtx_ranges(db, model_run, line_iterator)
         elif line.strip().startswith("Timer report,"):
             import_timer_report(db, model_run, line_iterator)
-        elif import_subdomains and line.strip().startswith("[SUBDOMAINS]"):
+        elif enable_import_subdomains and line.strip().startswith("[SUBDOMAINS]"):
             import_subdomains(db, model_run, line_iterator.revert())
 
     db.add(model_run)
