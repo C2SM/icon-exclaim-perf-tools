@@ -23,6 +23,10 @@ class LineCursor:
 
     def skip(self, pattern: str, strip=True):
         line = self.current_line()
+        while re.match(r"mo_.*:.*", line.strip()):
+            next(self)
+            line = self.current_line()
+            continue
         if strip:
             line = line.strip()
         if isinstance(pattern, str):
@@ -142,7 +146,8 @@ def import_nvtx_ranges(
 def import_timer_report(
     db: sqla.orm.Session,
     model_run: IconRun,
-    line_iterator: LineCursor
+    line_iterator: LineCursor,
+    single_rank: bool = False
 ) -> None:
     columns = {  # careful: order here matters
         "name": "name",
@@ -158,7 +163,17 @@ def import_timer_report(
         "_total_time_max_rank": "total max rank",
         "_total_time_avg": "total avg (s)",  # numbers are equal to total time so skip
         "_num_pe": "# PEs"
+    } if not single_rank else {
+        "name": "name",
+        "num_calls": "# calls",
+        "time_min": "t_min",
+        "time_avg": "t_avg",
+        "time_max": "t_max",
+        "_total_time_min": "total min (s)",  # numbers are equal to total time so skip
+        "time_total": "total max (s)",
+        "_total_time_avg": "total avg (s)",  # numbers are equal to total time so skip
     }
+
     # skip header
     header_dash_pattern = re.compile("([-]+)".join(["(\\s+)"] * (len(columns.values())+1)))
     line_iterator.skip("")
@@ -176,6 +191,8 @@ def import_timer_report(
     last_level_stack = [-1]
     last_entry_stack = [None]
     for i, line in enumerate(line_iterator):
+        if re.match(r"mo_.*:.*", line.strip()):
+            continue
         if re.match(r"-+", line.strip()):  # last line consists of just dashes
             break
         values = [*column_pattern.search(line).groups()]
@@ -244,6 +261,8 @@ def import_subdomains(
          enumerate(header_dash_pattern.search(header_dash_line).groups())]))
 
     for line in line_iterator:
+        if re.match(r"mo_.*:.*", line.strip()):
+            continue
         if not line.strip():  # last line consists of just dashes
             break
         values = [value.strip() for value in column_pattern.search(line).groups()]
@@ -323,8 +342,8 @@ def import_model_run_log(
     for line in line_iterator:
         if nvtx_pattern.match(line):
             import_nvtx_ranges(db, model_run, line_iterator)
-        elif line.strip().startswith("Timer report,"):
-            import_timer_report(db, model_run, line_iterator)
+        elif line.strip().startswith("Timer report") and not line.strip().startswith("Timer report:"):
+            import_timer_report(db, model_run, line_iterator, single_rank=not line.strip().startswith("Timer report, ranks"))
         elif enable_import_subdomains and line.strip().startswith("[SUBDOMAINS]"):
             import_subdomains(db, model_run, line_iterator.revert())
 
