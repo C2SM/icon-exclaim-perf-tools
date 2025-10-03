@@ -210,19 +210,6 @@ def print_schema():
         print()
 
 
-@cli.command("help")
-@click.pass_context
-def help(ctx):
-    for command in cli.commands.values():
-        if command.name == "help":
-            continue
-        click.echo("-"*80)
-        click.echo()
-        with click.Context(command, parent=ctx.parent, info_name=command.name) as ctx:
-            click.echo(command.get_help(ctx=ctx))
-        click.echo()
-
-
 @cli.command("export_log_to_bencher")
 @click.argument("log_file")
 @click.option("--experiment", default=None)
@@ -237,22 +224,30 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
 
     try:
         model_run = log_import.import_model_run_log_from_file(db.setup_db(":memory:"), log_file, experiment=experiment, jobid=jobid)
-        
-        # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (needed for Continuous Benchmarking).
-        bencher_metric_format = {model_run.experiment: {}}
-        
-        experiment = bencher_metric_format[model_run.experiment]
+
+        MAX_NAME_LENGTH = 1024
+        def truncate_name(name: str, max_len: int = MAX_NAME_LENGTH) -> str:
+            if len(name) <= max_len:
+                return name
+            # Truncate from the start, prepend '...'
+            return f"...{name[-(max_len - 3):]}"
+
+        # Generate a JSON file with all the timer data in the format expected by Bencher -Bencher Metric Format- (Continuous Benchmarking).
+        bencher_metric_format = {}
+        CONVERSION_TO_MILLISECONDS = 1000.0
         for timer in model_run.timer:
-            # assert timer.name not in experiment
-            if timer.name in experiment:
+            short_name = truncate_name(timer.name)
+            if short_name in bencher_metric_format:
                 continue
-            experiment[timer.name] = {
-                "value": timer.time_avg,
-                "lower_value": timer.time_min,
-                "upper_value": timer.time_max,
+            bencher_metric_format[short_name] = {
+                "latency": {
+                    "value": timer.time_avg * CONVERSION_TO_MILLISECONDS,
+                    "lower_value": timer.time_min * CONVERSION_TO_MILLISECONDS,
+                    "upper_value": timer.time_max * CONVERSION_TO_MILLISECONDS,
+                }
             }
-        
-        bencher_file_name = f"bencher_{model_run.experiment}_{model_run.jobid}_{model_run.mode}.json"
+
+        bencher_file_name = f"bencher={model_run.experiment}={model_run.jobid}={model_run.mode}.json"
         with open(bencher_file_name, "w") as f:
             json.dump(bencher_metric_format, f, indent=2)
 
@@ -261,6 +256,19 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
     except Exception as e:
         click.echo("An unexpected error occurred:", err=True)
         traceback.print_exc(file=sys.stderr)
+
+
+@cli.command("help")
+@click.pass_context
+def help(ctx):
+    for command in cli.commands.values():
+        if command.name == "help":
+            continue
+        click.echo("-"*80)
+        click.echo()
+        with click.Context(command, parent=ctx.parent, info_name=command.name) as ctx:
+            click.echo(command.get_help(ctx=ctx))
+        click.echo()
 
 
 if __name__ == '__main__':

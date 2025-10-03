@@ -1,4 +1,5 @@
 import dataclasses
+import os
 import re
 
 from icon_exclaim_perf_tools.db.schema import *
@@ -39,9 +40,12 @@ class LineCursor:
         next(self)  # skip line only after exception for easier debugging
         return line
 
-
     def revert(self):
         self.current_line_index -= 1
+        return self
+
+    def rewind(self):
+        self.current_line_index = 0
         return self
 
 
@@ -277,8 +281,8 @@ def extract_metadata_from_log_path(text):
     >>> parse_log_file_path("LOG.exp.mch_ch_r04b09_dsl.run.10134150.o")
     ('mch_ch_r04b09_dsl', '10134150')
     """
-    pattern = r'LOG\.exp\.([^\.]+)\.run\.(\d+)'
-    matches = re.search(pattern, text)
+    pattern = r'LOG\.(?:exp|check)\.([^\.]+)\.run(\.\d+){0,1}\.o'
+    matches = re.search(pattern, os.path.basename(text))
     if matches:
         experiment, jobid = matches.groups()
         return experiment, jobid
@@ -288,7 +292,8 @@ def extract_metadata_from_log_path(text):
 
 def extract_build_mode_from_executable(line: str) -> ModelRunMode:
     match = re.search(r'build_([^/\s]+)', line)
-    assert match
+    if not match:
+        return None
     run_mode: str = match.group(1)
     if run_mode == "acc":
         return ModelRunMode.OPENACC
@@ -301,6 +306,11 @@ def import_model_run_log(
     experiment: str,
     log_content: str,
     jobid: Optional[int] = None,
+    # TODO(tehrengruber): The subdomains are printed from multiple ranks in which case the output
+    #  is mangled together and not parsable. We just disable this option for now as the information
+    #  is not used anyway right now. If we don't need it in the future we should remove it
+    #  completely.
+    enable_import_subdomains: bool = False,
 ) -> IconRun:
     if jobid:
         existing_run = db.execute(sqla.select(IconRun).where(IconRun.jobid==jobid)).fetchone()
@@ -316,14 +326,25 @@ def import_model_run_log(
     lines: list[str] = log_content.split('\n')
 
     line_iterator: LineCursor = LineCursor(lines)
+    
+    # Determine the build mode from the log file
     for line in line_iterator:
         if line.strip().startswith("executable:"):
-            model_run.mode = extract_build_mode_from_executable(line)
-        elif nvtx_pattern.match(line):
+            mode = extract_build_mode_from_executable(line)
+            if mode is not None:
+                model_run.mode = mode
+        elif (match := re.search(r'\bBUILD_(GPU2PY|ACC|CPU2PY|CPU)\b', line)):
+            model_run.mode = ModelRunMode[match.group(1).upper()]
+    line_iterator.rewind()
+
+    assert model_run.mode is not None, "Could not determine the build mode from the log file!"
+
+    for line in line_iterator:
+        if nvtx_pattern.match(line):
             import_nvtx_ranges(db, model_run, line_iterator)
         elif line.strip().startswith("Timer report") and not line.strip().startswith("Timer report:"):
             import_timer_report(db, model_run, line_iterator, single_rank=not line.strip().startswith("Timer report, ranks"))
-        elif line.strip().startswith("[SUBDOMAINS]"):
+        elif enable_import_subdomains and line.strip().startswith("[SUBDOMAINS]"):
             import_subdomains(db, model_run, line_iterator.revert())
 
     db.add(model_run)

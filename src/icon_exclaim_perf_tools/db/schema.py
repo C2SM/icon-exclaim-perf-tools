@@ -81,6 +81,11 @@ class ModelRunMode(enum.Enum):
     VERIFICATION_FUSED_TEMPORARIES = "VERIFICATION_FUSED_TEMPORARIES"
     OPENACC = "OPENACC"
 
+    GPU2PY = "GPU2PY"
+    ACC = "ACC"
+    CPU2PY = "CPU2PY"
+    CPU = "CPU"
+
     def __str__(self):
         return self.name
 
