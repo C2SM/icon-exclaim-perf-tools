@@ -101,8 +101,8 @@ HELP_TEXT_FIELDS = "Comma seperated list of attributes to output."
 HELP_TEXT_WHERE = ("Restrict the output to results that fulfill the given condition (given as an "
                    "expression). E.g., `name.startswith('fused_')`")
 HELP_TEXT_GROUP_BY = "Aggregate all results grouped by the given attribute."
-HELP_TEXT_ORDER_BY = ("Sort the results by the given expression, e.g. `total_time_max.asc()` orders "
-                      "the result in ascending order of the `total_time_max` attribute.")
+HELP_TEXT_ORDER_BY = ("Sort the results by the given expression, e.g. `time_total.asc()` orders "
+                      "the result in ascending order of the `time_total` attribute.")
 HELP_TEXT_LIMIT = "Limit the number of result rows to the given number."
 
 @cli.command("print")
@@ -114,7 +114,7 @@ HELP_TEXT_LIMIT = "Limit the number of result rows to the given number."
 @click.option('--limit', type=int, default=None, help=HELP_TEXT_LIMIT)
 @click.option('--virtual-field', nargs=2, multiple=True,
               help="Display an additional column whose values are computed according to the "
-                   "given expression. E.g., `total_time_max/60`.")
+                   "given expression. E.g., `time_total/60`.")
 @database_option
 def print_(
     db: sqla.orm.Session,
@@ -246,9 +246,9 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
                     "upper_value": timer.time_max * CONVERSION_TO_MILLISECONDS,
                 },
                 "latency_total": {
-                    "value": timer.total_time_max * CONVERSION_TO_MILLISECONDS,
-                    "lower_value": timer.total_time_min * CONVERSION_TO_MILLISECONDS,
-                    "upper_value": timer.total_time_max * CONVERSION_TO_MILLISECONDS,
+                    "value": timer.time_total_avg * CONVERSION_TO_MILLISECONDS,
+                    "lower_value": timer.time_total_min * CONVERSION_TO_MILLISECONDS,
+                    "upper_value": timer.time_total * CONVERSION_TO_MILLISECONDS,
                 },
                 "num_calls": {
                     "value": timer.num_calls,

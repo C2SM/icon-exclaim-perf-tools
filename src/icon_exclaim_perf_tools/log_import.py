@@ -157,11 +157,11 @@ def import_timer_report(
         "time_avg": "t_avg",
         "time_max": "t_max",
         "_max_rang": "max rank",
-        "total_time_min": "total min (s)",  # numbers are equal to total time so skip
+        "time_total_min": "total min (s)",
         "_total_time_min_rank": "total min rank",
-        "total_time_max": "total max (s)",
+        "time_total": "total max (s)",
         "_total_time_max_rank": "total max rank",
-        "total_time_avg": "total avg (s)",  # numbers are equal to total time so skip
+        "time_total_avg": "total avg (s)",
         "_num_pe": "# PEs"
     } if not single_rank else {
         "name": "name",
@@ -169,9 +169,9 @@ def import_timer_report(
         "time_min": "t_min",
         "time_avg": "t_avg",
         "time_max": "t_max",
-        "total_time_min": "total min (s)",  # numbers are equal to total time so skip
-        "total_time_max": "total max (s)",
-        "total_time_avg": "total avg (s)",  # numbers are equal to total time so skip
+        "time_total_min": "total min (s)",  # numbers are equal to total time if single rank
+        "time_total": "total max (s)",
+        "time_total_avg": "total avg (s)",  # numbers are equal to total time if single rank
     }
 
     # skip header
@@ -202,9 +202,9 @@ def import_timer_report(
         entry_data["time_min"] = convert_to_seconds_icon(entry_data["time_min"])
         entry_data["time_max"] = convert_to_seconds_icon(entry_data["time_max"])
         entry_data["time_avg"] = convert_to_seconds_icon(entry_data["time_avg"])
-        entry_data["total_time_min"] = convert_to_seconds_icon(entry_data["total_time_min"]+"s")
-        entry_data["total_time_max"] = convert_to_seconds_icon(entry_data["total_time_max"]+"s")
-        entry_data["total_time_avg"] = convert_to_seconds_icon(entry_data["total_time_avg"]+"s")
+        entry_data["time_total_min"] = convert_to_seconds_icon(entry_data["time_total_min"]+"s")
+        entry_data["time_total"] = convert_to_seconds_icon(entry_data["time_total"]+"s")
+        entry_data["time_total_avg"] = convert_to_seconds_icon(entry_data["time_total_avg"]+"s")
         entry_data["num_calls"] = int(entry_data["num_calls"])
         new_entry = TimerReportEntry.create(
             db,

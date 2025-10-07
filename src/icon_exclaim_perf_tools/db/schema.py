@@ -145,7 +145,7 @@ class TimerReportEntry(Model):
 
     REPR_FIELDS = ["name", "run", "parent"]
     DEFAULT_COMPARE_BY = "run.jobid"
-    DEFAULT_COMPARE_FIELDS = ["time_min", "time_avg", "time_max", "total_time_max", "total_time_min", "total_time_avg"]
+    DEFAULT_COMPARE_FIELDS = ["time_min", "time_avg", "time_max", "time_total"]
     RESTRICT_COMPARISON_BY = ["name"]
 
     class Aggregation(TimerAggregation):
@@ -154,9 +154,8 @@ class TimerReportEntry(Model):
                              else_='NONE')
 
         num_calls = sqla.func.sum
-        total_time_max = sqla.func.max
-        total_time_min = sqla.func.min
-        total_time_avg = sqla.func.avg
+        time_total_min = sqla.func.min
+        time_total_avg = sqla.func.avg
 
     id: sqla.orm.Mapped[int] = sqla.orm.mapped_column(primary_key=True)
     name: sqla.orm.Mapped[str]
@@ -166,9 +165,9 @@ class TimerReportEntry(Model):
     time_min: sqla.orm.Mapped[float]
     time_avg: sqla.orm.Mapped[float]
     time_max: sqla.orm.Mapped[float]
-    total_time_max: sqla.orm.Mapped[float]
-    total_time_min: sqla.orm.Mapped[float]
-    total_time_avg: sqla.orm.Mapped[float]
+    time_total: sqla.orm.Mapped[float]
+    time_total_min: sqla.orm.Mapped[float]
+    time_total_avg: sqla.orm.Mapped[float]
 
     children: sqla.orm.Mapped[list["TimerReportEntry"]] = sqla.orm.relationship()
 
