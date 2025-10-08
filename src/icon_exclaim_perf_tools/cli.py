@@ -244,6 +244,14 @@ def export_log_to_bencher(log_file: str, experiment: Optional[str], jobid: Optio
                     "value": timer.time_avg * CONVERSION_TO_MILLISECONDS,
                     "lower_value": timer.time_min * CONVERSION_TO_MILLISECONDS,
                     "upper_value": timer.time_max * CONVERSION_TO_MILLISECONDS,
+                },
+                "latency_total": {
+                    "value": timer.time_total_avg * CONVERSION_TO_MILLISECONDS,
+                    "lower_value": timer.time_total_min * CONVERSION_TO_MILLISECONDS,
+                    "upper_value": timer.time_total * CONVERSION_TO_MILLISECONDS,
+                },
+                "num_calls": {
+                    "value": timer.num_calls,
                 }
             }
 

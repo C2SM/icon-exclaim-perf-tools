@@ -154,6 +154,8 @@ class TimerReportEntry(Model):
                              else_='NONE')
 
         num_calls = sqla.func.sum
+        time_total_min = sqla.func.min
+        time_total_avg = sqla.func.avg
 
     id: sqla.orm.Mapped[int] = sqla.orm.mapped_column(primary_key=True)
     name: sqla.orm.Mapped[str]
@@ -164,6 +166,8 @@ class TimerReportEntry(Model):
     time_avg: sqla.orm.Mapped[float]
     time_max: sqla.orm.Mapped[float]
     time_total: sqla.orm.Mapped[float]
+    time_total_min: sqla.orm.Mapped[float]
+    time_total_avg: sqla.orm.Mapped[float]
 
     children: sqla.orm.Mapped[list["TimerReportEntry"]] = sqla.orm.relationship()
 
