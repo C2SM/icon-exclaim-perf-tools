@@ -177,6 +177,9 @@ def import_timer_report(
     # skip header
     header_dash_pattern = re.compile("([-]+)".join(["(\\s+)"] * (len(columns.values())+1)))
     line_iterator.skip("")
+    # Make sure we assign to the head_dash_line a line that contains dashes
+    while not re.match(r"-+", line_iterator.current_line().strip()):
+        next(line_iterator)
     header_dash_line = line_iterator.current_line()
     line_iterator.skip(header_dash_pattern, strip=False)
     line_iterator.skip(re.compile("\\s+".join([re.escape(column) for column in columns.values()])))
