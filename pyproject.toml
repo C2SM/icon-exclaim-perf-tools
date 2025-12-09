@@ -14,7 +14,7 @@ dependencies = [
 description = 'Repository containing performance data of icon exclaim. '
 name = 'icon_exclaim_perf_tools'
 readme = {file = 'README.md', content-type = 'text/markdown'}
-requires-python = '>=3.10'
+requires-python = '>=3.9'
 version = '0.0'
 
 [project.scripts]
