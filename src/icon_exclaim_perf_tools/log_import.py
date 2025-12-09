@@ -198,7 +198,12 @@ def import_timer_report(
         values = [*column_pattern.search(line).groups()]
         level = values[0].index("L") if "L" in values[0] else 0
         values[0] = values[0].replace("L", "")
-        entry_data = {k: v.strip() for k, v in zip(columns.keys(), values, strict=True)}
+        if len(columns.keys()) != len(values):
+            raise ValueError(f"Number of columns in timer report line does not match expected number of columns.\n"
+                             f"Line: `{line}`\n"
+                             f"Expected columns: {list(columns.keys())}\n"
+                             f"Extracted values: {values}")
+        entry_data = {k: v.strip() for k, v in zip(columns.keys(), values)}
         entry_data["time_min"] = convert_to_seconds_icon(entry_data["time_min"])
         entry_data["time_max"] = convert_to_seconds_icon(entry_data["time_max"])
         entry_data["time_avg"] = convert_to_seconds_icon(entry_data["time_avg"])
