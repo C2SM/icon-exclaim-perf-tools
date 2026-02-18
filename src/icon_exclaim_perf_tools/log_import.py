@@ -301,6 +301,9 @@ def extract_build_mode_from_executable(line: str) -> ModelRunMode:
     if not match:
         return None
     run_mode: str = match.group(1)
+    if run_mode not in ["acc", "gpu2py", "cpu2py", "cpu"]:
+        print(f"Warning: Could novt determine run mode from executable line, unrecognized build folder name \"{match.group(0)}\" in \"{match.string}\"")
+        return None
     if run_mode == "acc":
         return ModelRunMode.OPENACC
     else:
@@ -339,7 +342,7 @@ def import_model_run_log(
             mode = extract_build_mode_from_executable(line)
             if mode is not None:
                 model_run.mode = mode
-        elif (match := re.search(r'\bBUILD_(GPU2PY|ACC|CPU2PY|CPU)\b', line)):
+        elif (match := re.search(r'This executable was built for:  BUILD_(GPU2PY|ACC|CPU2PY|CPU)\b', line)):
             model_run.mode = ModelRunMode[match.group(1).upper()]
     line_iterator.rewind()
 
