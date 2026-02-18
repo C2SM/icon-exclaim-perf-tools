@@ -23,7 +23,7 @@ class LineCursor:
 
     def skip(self, pattern: str, strip=True):
         line = self.current_line()
-        while re.match(r"mo_.*:.*", line.strip()):
+        while re.match(r"^mo_.*:.*", line.strip()):
             next(self)
             line = self.current_line()
             continue
@@ -177,6 +177,8 @@ def import_timer_report(
     # skip header
     header_dash_pattern = re.compile("([-]+)".join(["(\\s+)"] * (len(columns.values())+1)))
     line_iterator.skip("")
+    while re.match(r"^mo_.*:.*", line_iterator.current_line().strip()):
+        next(line_iterator)
     header_dash_line = line_iterator.current_line()
     line_iterator.skip(header_dash_pattern, strip=False)
     line_iterator.skip(re.compile("\\s+".join([re.escape(column) for column in columns.values()])))
@@ -191,7 +193,7 @@ def import_timer_report(
     last_level_stack = [-1]
     last_entry_stack = [None]
     for i, line in enumerate(line_iterator):
-        if re.match(r"mo_.*:.*", line.strip()):
+        if re.match(r"^mo_.*:.*", line.strip()):
             continue
         if re.match(r"-+", line.strip()):  # last line consists of just dashes
             break
@@ -265,7 +267,7 @@ def import_subdomains(
          enumerate(header_dash_pattern.search(header_dash_line).groups())]))
 
     for line in line_iterator:
-        if re.match(r"mo_.*:.*", line.strip()):
+        if re.match(r"^mo_.*:.*", line.strip()):
             continue
         if not line.strip():  # last line consists of just dashes
             break
@@ -299,6 +301,9 @@ def extract_build_mode_from_executable(line: str) -> ModelRunMode:
     if not match:
         return None
     run_mode: str = match.group(1)
+    if run_mode not in ["acc", "gpu2py", "cpu2py", "cpu"]:
+        print(f"Warning: Could novt determine run mode from executable line, unrecognized build folder name \"{match.group(0)}\" in \"{match.string}\"")
+        return None
     if run_mode == "acc":
         return ModelRunMode.OPENACC
     else:
@@ -337,7 +342,7 @@ def import_model_run_log(
             mode = extract_build_mode_from_executable(line)
             if mode is not None:
                 model_run.mode = mode
-        elif (match := re.search(r'\bBUILD_(GPU2PY|ACC|CPU2PY|CPU)\b', line)):
+        elif (match := re.search(r'This executable was built for:  BUILD_(GPU2PY|ACC|CPU2PY|CPU)\b', line)):
             model_run.mode = ModelRunMode[match.group(1).upper()]
     line_iterator.rewind()
 
