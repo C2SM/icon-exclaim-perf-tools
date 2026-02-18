@@ -23,7 +23,7 @@ class LineCursor:
 
     def skip(self, pattern: str, strip=True):
         line = self.current_line()
-        while re.match(r"mo_.*:.*", line.strip()):
+        while re.match(r"^mo_.*:.*", line.strip()):
             next(self)
             line = self.current_line()
             continue
@@ -177,7 +177,7 @@ def import_timer_report(
     # skip header
     header_dash_pattern = re.compile("([-]+)".join(["(\\s+)"] * (len(columns.values())+1)))
     line_iterator.skip("")
-    while re.match(r"mo_.*:.*", line_iterator.current_line().strip()):
+    while re.match(r"^mo_.*:.*", line_iterator.current_line().strip()):
         next(line_iterator)
     header_dash_line = line_iterator.current_line()
     line_iterator.skip(header_dash_pattern, strip=False)
@@ -193,7 +193,7 @@ def import_timer_report(
     last_level_stack = [-1]
     last_entry_stack = [None]
     for i, line in enumerate(line_iterator):
-        if re.match(r"mo_.*:.*", line.strip()):
+        if re.match(r"^mo_.*:.*", line.strip()):
             continue
         if re.match(r"-+", line.strip()):  # last line consists of just dashes
             break
@@ -267,7 +267,7 @@ def import_subdomains(
          enumerate(header_dash_pattern.search(header_dash_line).groups())]))
 
     for line in line_iterator:
-        if re.match(r"mo_.*:.*", line.strip()):
+        if re.match(r"^mo_.*:.*", line.strip()):
             continue
         if not line.strip():  # last line consists of just dashes
             break
